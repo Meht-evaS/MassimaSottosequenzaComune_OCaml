@@ -1,3 +1,7 @@
+exception NumeroStringheNonValido of string;;
+exception LunghezzaMinimaNonValida of string;;
+exception LunghezzaMassimaNonValida of string;;
+
 exception ProlungaRicerca;;
 exception ProlungaRicercaCambioK;;
 exception ProlungaRicercaIncrementoK;;
@@ -6,6 +10,67 @@ exception NonPresente;;
 
 exception KNonUtilizzabile of string;;
 exception ListaVuota of string;;
+
+
+
+
+let stampa_lista lst = 
+	print_string("[");
+	let rec stampa_lista_helper lst = match lst with
+		[] -> print_string("]"); ()
+		| hd::tl -> Printf.printf "%S" hd;
+			if tl <> []
+				then print_string("; ");
+			stampa_lista_helper tl
+	in stampa_lista_helper lst;;
+
+
+
+let rec genera_stringa_random lunghezza risultato =
+	if lunghezza <= 0
+		then risultato
+		else genera_stringa_random (lunghezza-1) (risultato^(Printf.sprintf "%c" (Char.chr (97 + (Random.int 26)))));;
+
+let genera_stringa lunghezza_stringa substring_comune =
+	let lunghezza_base = Random.int lunghezza_stringa in
+		(genera_stringa_random lunghezza_base "") ^ substring_comune ^ (genera_stringa_random (lunghezza_stringa - lunghezza_base) "");;
+
+
+let genera_lista () =
+	print_string("Quante stringhe vuoi generare? ");
+
+	let numero_stringhe = read_int() in 
+		if numero_stringhe <= 0
+			then raise (NumeroStringheNonValido "Il numero delle strighe da generare deve essere > 0")
+			else (
+				print_string("\nInserisci la substring che tutte le stringhe devono avere in comune: ");
+				let substring_comune = read_line() in 
+					print_string("\nInserisci il valore di lunghezza minimo per le stringhe da generare: ");
+					let lunghezza_min = read_int() in 
+						if lunghezza_min <= 0
+							then raise (LunghezzaMinimaNonValida "Il valore di lunghezza minimo per le stringhe da generare deve essere > 0")
+							else (
+								print_string("\nInserisci il valore di lunghezza massima per le stringhe da generare (ad esso verra' aggiunto il valore della lunghezza della substring in comune): ");
+								let lunghezza_max = read_int() in 
+									if lunghezza_max < lunghezza_min
+										then raise (LunghezzaMassimaNonValida "Il valore di lunghezza massima per le stringhe da generare deve essere >= del valore di lunghezza minimo")
+										else (
+											let risultato = 
+												let rec genera_lista_helper numero_stringhe lista_risultato =
+													if numero_stringhe = 0 
+														then lista_risultato
+														else (
+															let lunghezza_random = (lunghezza_min + Random.int (lunghezza_max - lunghezza_min + 1)) in
+																genera_lista_helper (numero_stringhe-1) ((genera_stringa lunghezza_random substring_comune) :: lista_risultato)
+														)
+												in genera_lista_helper numero_stringhe [];
+											in stampa_lista risultato;
+										)
+							)
+			);;
+
+
+
 
 (* *********************************************************** *)
 (*  Sort di una string list per lunghezza elementi ascendente  *) 
@@ -20,18 +85,6 @@ let sort_help s1 s2 =
 				else -1;;
 	
 let sorter_lst lst = List.sort sort_help lst;;  
-
-
-
-let stampa_lista lst = 
-	print_string("[");
-	let rec stampa_lista_helper lst = match lst with
-		[] -> print_string("]"); ()
-		| hd::tl -> Printf.printf "%S" hd;
-			if tl <> []
-				then print_string("; ");
-			stampa_lista_helper tl
-	in stampa_lista_helper lst;;
 
 
 let stampa_soluzione (res_bool, res_string) richiesta =
@@ -52,7 +105,6 @@ let my_print_char prefix value postfix =
 
 let ask_more soluzione k =
 	stampa_soluzione soluzione "\n\nCercare un'altra substring (S/n) ? ";
-	(* print_string (soluzione^"\n\nCercare un'altra substring (s/n) ? "); *)
 	let s = read_line() in 
 		if s <> "" && (s.[0]='n' || s.[0]='N') 
 			then soluzione
@@ -168,6 +220,8 @@ let find_substring lst_of_string k =
  						Printf.printf "Lunghezza substring (K): %d\n\n\n" k;
  						find_substring_check shortest_string tail k 0 0
  					);;
+
+["xxgnsdcmlmlnwertyuwailug"; "mncpewertymwgx"; "sdgbxpbaghmcluwertytqcnf"; "nvwertyyfryf"; "pmijjfwertyzitulyfszvn"; "dumgakxwertyzematgazdij"; "avxhbdbpedsgowertygcle"; "naojvnrrjouukrwertym"; "ewertyuvtcqgpdzfxkjtvx"; "mvmxxwertyuft"; "aucufbvshpknzfhwertywzsn"; "zwertywnixacqgwolys"; "orntuwertyzu"; "jqbwertyfsz"; "zwertyfunnlrw"; "wertyahgkxlfddfftucsvypqs"; "ixwertyixxsip"; "dqxtftnwertywi"; "szehmxwertyfjoytir"; "remuuwertyzbvzw"; "xtptgwertywvftv"; "bjsubulbacawertywrzg"; "vmtuctdwldmctwertyw"; "memlmskmwertybvffq"; "xxpcncttwertyy"; "ldjnwertynofczbhxbktyp"; "tqywertyqkhnfaa"; "duzwwertyythj"; "vgwertyahfs"; "lytwertylthkzc"; "elpzygezpkbeawertywtvhm"; "wertyycpxuyzfrexqsfvvqy"; "pmmjaoodumwertyixjwwi"; "rrzmafxswertyhrtxzsturef"; "wertyntvhdczxdmskmbziz"; "bdxahlswamulxvwwertyss"; "qwertyygdpdzbepighu"; "cgygaarjtwertyelozmvzbv"; "tgrxgwertyoncb"; "sshpsiwertyvelzhbsaa"; "lrcrmoiowertyat"; "lzttmwertyhmfu"; "fbjcyzswyczxliwertyzmqsi"; "koqecgnixhpacwertydqexawu"; "ajwertyjdzokjsfr"; "ekpwertyezqbjuffbyh"; "wertykoiprxzabyumbjewa"; "mpvsawertywpn"; "ahxhwertyng"; "lsiwertykjxmkxndrdph"; "rvwertybuyzkt"; "wertymppdnutcpuaw"; "awertyeiefu"; "mejwynepfgnrwertyffliy"; "qunagtotyyphhwertymbywps"; "ycwertympbguwbqws"; "fjfuiwertylsxedous"; "zbdwertyjskoftqawskvjt"; "vhezexwertymnwhyhnibem"; "cipiswertygfbtdlijgqpwxi"; "xnwertyyoeegwiujwss"; "rhaapnwertyq"; "pwertywruqnthg"; "jypmvtwertywwyot"; "bbmxbbrnxbyowpfkgwertyxq"; "qpxxhxbpwertypa"; "mtyvggtwertymlb"; "qpkfwccrjtywertyue"; "zgqnwertyit"; "trlhwertyzyriqeslobcrorn"; "owertybyyabqruqnxhjpmmp"; "wertyywkaijnwnv"; "hjvpahpidfgzhbuzwertyeoa"; "lqesizbwertyfbz"; "wertyjzbmwe"; "eygwertyzflugfqrj"; "rlwptwedwfwkuedvwertyu"; "aocbszwertyj"; "hcwertydudsw"; "tmpyjwertyamzr"; "hypjrwwertyyxlzaa"; "vmzwertyfbs"; "ogonggwertyj"; "cbhwertyyraujkpbhu"; "cwertyfboby"; "nywertyyrnrr"; "kpvjiiwertyypsrws"; "dekcwertysa"; "lqewertycuebglihcsw"; "dswertynazg"; "oqcouwertybmqbgss"; "wertyrprqfexwjgbqnw"; "tboinixzchcwertyjvrzebw"; "nkwertyjzuikhjzuphfzi"; "clitoswertynqz"; "cwertytxgazafsyhzehjqxihf"; "vwertygrymlfevj"; "vemihdgrwertyxyzxuvztojs"; "zwertyfrxpusos"; "miwbsowertyw"]
 
 find_substring [] 4;; 
 
