@@ -13,6 +13,8 @@ exception ListaVuota of string;;
 
 
 
+(* ****************************** *)
+(*  Stampa una lista di stringhe  *)
 
 let stampa_lista lista = 
 	print_string("[");
@@ -31,13 +33,25 @@ let rec genera_stringa_random lunghezza risultato =
 		then risultato
 		else genera_stringa_random (lunghezza-1) (risultato^(Printf.sprintf "%c" (Char.chr (97 + (Random.int 26)))));;
 
-let genera_stringa lunghezza_stringa substring_comune =
+let genera_stringa lunghezza_stringa substring_comune file bool_ultima_stringa =
 	let lunghezza_base = Random.int lunghezza_stringa in
-		(genera_stringa_random lunghezza_base "") ^ substring_comune ^ (genera_stringa_random (lunghezza_stringa - lunghezza_base) "");;
+		let risultato = (genera_stringa_random lunghezza_base "") ^ substring_comune ^ (genera_stringa_random (lunghezza_stringa - lunghezza_base) "") in
+			if (not bool_ultima_stringa)
+				then Printf.fprintf file "%S; " risultato
+				else Printf.fprintf file "%S]" risultato; 
+			risultato ;;
 
+
+(* ******************************************************************************** *)
+(*  Genera una lista di stringhe, che viene poi salvata nel file "lista.txt", in    *)
+(*  base ad alcuni parametri che vengono chiesti interattivamente all'utente quali: *)
+(*    - numero di stringhe da generare                                              *)
+(*    - lunghezza minima stringhe da generare                                       *)
+(*    - lunghezza massima stringhe da generare                                      *)
+(*    - valore della substring che avranno in comune tutte le stringhe generate     *)
 
 let genera_lista () =
-	print_string("Quante stringhe vuoi generare? ");
+	print_string("\nQuante stringhe vuoi generare? ");
 
 	let numero_stringhe = read_int() in 
 		if numero_stringhe <= 0
@@ -55,23 +69,27 @@ let genera_lista () =
 									if lunghezza_max < lunghezza_min
 										then raise (LunghezzaMassimaNonValida "Il valore di lunghezza massima per le stringhe da generare deve essere >= del valore di lunghezza minimo")
 										else (
-												let rec genera_lista_helper numero_stringhe lista_risultato =
-													if numero_stringhe = 0 
-														then lista_risultato
-														else (
-															let lunghezza_random = (lunghezza_min + Random.int (lunghezza_max - lunghezza_min + 1)) in
-																genera_lista_helper (numero_stringhe-1) ((genera_stringa lunghezza_random substring_comune) :: lista_risultato)
-														)
-												in genera_lista_helper numero_stringhe [];
+												let file = open_out "lista.txt" in
+													Printf.fprintf file "[";
+													let risultato = 
+														let rec genera_lista_helper numero_stringhe lista_risultato =
+															if numero_stringhe = 0 
+																then lista_risultato
+																else (
+																	let lunghezza_random = (lunghezza_min + Random.int (lunghezza_max - lunghezza_min + 1)) in
+																		genera_lista_helper (numero_stringhe-1) ((genera_stringa lunghezza_random substring_comune file (if numero_stringhe = 1 then true else false)) :: lista_risultato)
+																)
+														in genera_lista_helper numero_stringhe [];
+													in close_out file;
+													print_string("\nLista salvata in \"lista.txt\"\n");
+													risultato
 										)
 							)
 			);;
 
 
-
-
 (* *********************************************************** *)
-(*  Sort di una string list per lunghezza elementi ascendente  *) 
+(*  Sort di una string list per lunghezza elementi ascendente  *)
 
 let ordina_ascendente_lunghezza stringa1 stringa2 = 
 	let lunghezza_s1 = String.length stringa1 in	
@@ -223,6 +241,8 @@ let calcola_tempo_esecuzione f x y =
 		fxy;;
 
 
+genera_lista ();;
+
 ricerca_substring ["ciao";"ciaooo";"ciooaociao"] 2;; 
 
 
@@ -272,8 +292,8 @@ ordina_lista ["xxgnsdcmlmlnwertyuwailug"; "mncpewertymwgx"; "sdgbxpbaghmcluwerty
 (**********************************************************)
 - Fai un disclaimer dicendo che le lettere accentate non 
   vengono stampate
-- Misura il tempo di computazione e mettilo a confronto con
-  quello che si avrebbe usando l'altra tecnica di risoluzione
+- Se k = 1 e su stringa minima si hanno caratteri che si 
+  ripetono, non dovresti andarli a cercare
 
 (**********************************************************)
 (****************** MIGLIORIE APPORTATE *******************)
@@ -285,6 +305,7 @@ ordina_lista ["xxgnsdcmlmlnwertyuwailug"; "mncpewertymwgx"; "sdgbxpbaghmcluwerty
 	- k > len str più corta 
 	- lista vuota
 - Trova substring maggiori di K chiedendolo all'utente
+- Creata funzione che mi genera una lista di stringhe rand 
 
 
 (**********************************************************)
