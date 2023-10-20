@@ -1,13 +1,20 @@
+(* ***************************** *)
+(*           Eccezioni           *)
+
+(* Eccezioni - genera_lista() *)
 exception NumeroStringheNonValido of string;;
 exception LunghezzaMinimaNonValida of string;;
 exception LunghezzaMassimaNonValida of string;;
 
+(* Eccezioni - continua_ricerca() *)
 exception ProlungaRicerca;;
 exception ProlungaRicercaCambioK;;
 exception ProlungaRicercaIncrementoK;;
 
+(* Eccezioni - ricerca_substring_helper() *)
 exception NonPresente;;
 
+(* Eccezioni - ricerca_substring() *)
 exception KNonUtilizzabile of string;;
 exception ListaVuota of string;;
 
@@ -28,10 +35,18 @@ let stampa_lista lista =
 
 
 
+(* ***************************************** *)
+(*  Funzione ausiliaria di genera_stringa()  *)
+
 let rec genera_stringa_random lunghezza risultato =
 	if lunghezza <= 0
 		then risultato
 		else genera_stringa_random (lunghezza-1) (risultato^(Printf.sprintf "%c" (Char.chr (97 + (Random.int 26)))));;
+
+
+(* *********************************************************** *)
+(*  Genera una stringa randomica, tramite funzione ausiliaria  *)
+(*  genera_stringa_random(), e la scrive su file               *)
 
 let genera_stringa lunghezza_stringa substring_comune file bool_ultima_stringa =
 	let lunghezza_base = Random.int lunghezza_stringa in
@@ -69,23 +84,24 @@ let genera_lista () =
 									if lunghezza_max < lunghezza_min
 										then raise (LunghezzaMassimaNonValida "Il valore di lunghezza massima per le stringhe da generare deve essere >= del valore di lunghezza minimo")
 										else (
-												let file = open_out "lista.txt" in
-													Printf.fprintf file "[";
-													let risultato = 
-														let rec genera_lista_helper numero_stringhe lista_risultato =
-															if numero_stringhe = 0 
-																then lista_risultato
-																else (
-																	let lunghezza_random = (lunghezza_min + Random.int (lunghezza_max - lunghezza_min + 1)) in
-																		genera_lista_helper (numero_stringhe-1) ((genera_stringa lunghezza_random substring_comune file (if numero_stringhe = 1 then true else false)) :: lista_risultato)
-																)
-														in genera_lista_helper numero_stringhe [];
-													in close_out file;
-													print_string("\nLista salvata in \"lista.txt\"\n");
-													risultato
+											let file = open_out "lista.txt" in
+												Printf.fprintf file "[";
+												let risultato = 
+													let rec genera_lista_helper numero_stringhe lista_risultato =
+														if numero_stringhe = 0 
+															then lista_risultato
+															else (
+																let lunghezza_random = (lunghezza_min + Random.int (lunghezza_max - lunghezza_min + 1)) in
+																	genera_lista_helper (numero_stringhe-1) ((genera_stringa lunghezza_random substring_comune file (if numero_stringhe = 1 then true else false)) :: lista_risultato)
+															)
+													in genera_lista_helper numero_stringhe [];
+												in close_out file;
+												print_string("\nLista salvata in \"lista.txt\"\n");
+												risultato
 										)
 							)
 			);;
+
 
 
 (* *********************************************************** *)
@@ -103,9 +119,21 @@ let ordina_ascendente_lunghezza stringa1 stringa2 =
 let ordina_lista lista = List.sort ordina_ascendente_lunghezza lista;;  
 
 
+
+(* ****************************************************************** *)
+(*             Funzione ausiliaria di continua_ricerca()              *)
+(*  Stampa la soluzione e la richiesta di continuo ricerca substring  *)
+
 let stampa_soluzione (res_bool, res_string) richiesta =
 	Printf.printf "(%B, %S) %s" res_bool res_string richiesta;;
 
+(* ***************************************************************************** *)
+(*               Funzione di richiesta continua ricerca substring                *)
+(*                                                                               *)
+(*  La ricerca può continuare in 3 modi differenti:                              *)
+(*    - mantenendo la stessa K   -> lancio eccezione ProlungaRicerca             *)
+(*    - incrementando K di 1     -> lancio eccezione ProlungaRicercaIncrementoK  *)
+(*    - cambiando il valore di K -> lancio eccezione ProlungaRicercaCambioK      *)
 
 let continua_ricerca soluzione k =
 	stampa_soluzione soluzione "\n\nCercare un'altra substring (S/n) ? ";
@@ -119,16 +147,21 @@ let continua_ricerca soluzione k =
 				print_string("[3] Cambiare il valore di K\n\n");
 				print_string("Scelta: ");
 
-				let scelta2 = read_int() in 
-					if scelta2 = 2
+				let scelta2 = read_line() in 
+					if scelta2 = "2"
 						then raise ProlungaRicercaIncrementoK
-					else if scelta2 = 3 
+					else if scelta2 = "3" 
 						then raise ProlungaRicercaCambioK
 					else
 						raise ProlungaRicerca
 			);;
 
 
+
+(* ***************************************************************************** *)
+(*  Questa funzione serve a verificare se una specifica substring, appartenente  *)
+(*  alla strnga più corta, è presente all'interno di una specifica stringa tra   *)
+(*  quelle che compongo la lista di confronto                                    *)
 
 let rec cerca_substring_in_stringa substring stringa_confronto i j contatore_char k =
 	let len_substring = String.length substring in
@@ -154,6 +187,10 @@ let rec cerca_substring_in_stringa substring stringa_confronto i j contatore_cha
 			else false;;
 
 
+(* ********************************************************************************** *)
+(*  Questa funzione utilizza il backtracking e permette di confrontare la stringa più *)
+(*  corta con il resto delle stringhe presenti nella lista al fine di verificare la   *)
+(*  presenza di una substring di lunghezza K in comune tra tutte quelle stringhe      *)
 
 let rec ricerca_substring_helper stringa_piu_corta lista k index contatore_char = 
 	let len_stringa_piu_corta = String.length stringa_piu_corta in
@@ -190,7 +227,7 @@ let rec ricerca_substring_helper stringa_piu_corta lista k index contatore_char 
 													raise (KNonUtilizzabile eccezione) 
 											else ricerca_substring_helper stringa_piu_corta lista new_k 0 0
 							)	
-						| x::rest -> print_string("** ricerca_substring_helper **\n");
+						| x::rest -> print_string("** ricerca_substring_helper -- test stringa successiva **\n");
 							Printf.printf "index:          %d\n" index;
 							Printf.printf "contatore_char: %d\n" contatore_char;
 							Printf.printf "  stringa: %S\n" x;
@@ -200,7 +237,7 @@ let rec ricerca_substring_helper stringa_piu_corta lista k index contatore_char 
 								then cerca_substring_in_lista rest
 								else raise NonPresente
 					in cerca_substring_in_lista lista
-				with NonPresente -> print_string("** ricerca_substring_helper -- testata stringa **\n");
+				with NonPresente -> print_string("** ricerca_substring_helper -- testata stringa, fallimento **\n");
 					Printf.printf "index:          %d\n" index;
 					Printf.printf "contatore_char: %d\n\n" contatore_char;
 
@@ -208,6 +245,20 @@ let rec ricerca_substring_helper stringa_piu_corta lista k index contatore_char 
 			else (false, "");;
 
 
+(* ************************************************************************************ *)
+(*  Questa è la funzione principale del programma e che l'utente deve richiamare per    *)
+(*  avviare la ricerca di una substring in comune tra tutte le stringhe presenti nella  *)
+(*  lista che viene passata in input alla funzione. Tale funzione va inoltre ad         *)
+(*  effettuare dei controlli di sicurezza per verificare che:                           *)
+(*    - la lunghezza (K) della substring da cercare sia >= 0                            *)
+(*    - la lunghezza (K) della substring da cercare sia <= lunghezza stringa piu' corta *)
+(*      all'interno della lista in input                                                *)
+(*    - la lista in input contenga almeno un elemento                                   *)
+(*                                                                                      *)
+(*  La funzione restituisce in output una tupla (bool * string) in cui il valore bool   *)
+(*  ci indica se la ricerca ha avuto successo o meno mentre il valore string ci ritorna *)
+(*  "" se la ricerca non ha avuto successo, altrimenti il valore della substring in     *)
+(*  comune tra tutte le stringhe.                                                       *)
 
 let ricerca_substring lista k = 
  	if k <= 0 
@@ -232,6 +283,9 @@ let ricerca_substring lista k =
  						Printf.printf "Lunghezza substring (K): %d\n\n\n" k;
  						ricerca_substring_helper stringa_piu_corta coda k 0 0
  					);;
+
+
+
 
 
 let calcola_tempo_esecuzione f x y =
