@@ -1,7 +1,7 @@
 
 # Problema della massima sottosequenza comune: ricerca in profondità
 
-Progetto di esame OCaml per la materia Artificial Intelligent Systems: mod. Intelligent Application Development
+Progetto d'esame, in linguaggio OCaml, per la materia Artificial Intelligent Systems: mod. Intelligent Application Development
 
 ##  :pencil: Sommario
 * [Obiettivo](#obiettivo)
