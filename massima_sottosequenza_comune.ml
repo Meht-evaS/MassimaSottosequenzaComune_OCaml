@@ -13,25 +13,11 @@ exception ProlungaRicercaIncrementoK;;
 
 (* Eccezioni - ricerca_substring_helper() *)
 exception NonPresente;;
+exception GiaInRisultato;;
 
 (* Eccezioni - ricerca_substring() *)
 exception KNonUtilizzabile of string;;
 exception ListaVuota of string;;
-
-
-
-(* ****************************** *)
-(*  Stampa una lista di stringhe  *)
-
-let stampa_lista lista = 
-	print_string("[");
-	let rec stampa_lista_helper lista = match lista with
-		[] -> print_string("]"); ()
-		| hd::tl -> Printf.printf "%S" hd;
-			if tl <> []
-				then print_string("; ");
-			stampa_lista_helper tl
-	in stampa_lista_helper lista;;
 
 
 
@@ -41,6 +27,8 @@ let stampa_lista lista =
 let rec genera_stringa_random lunghezza risultato =
 	if lunghezza <= 0
 		then risultato
+		(* Char 97 = a,  Char (97+25) = z *)
+		(* Quindi con Random.int 26 riesco a generare un char (in minuscolo) appartenente all'alfabeto *)
 		else genera_stringa_random (lunghezza-1) (risultato^(Printf.sprintf "%c" (Char.chr (97 + (Random.int 26)))));;
 
 
@@ -104,6 +92,22 @@ let genera_lista () =
 
 
 
+
+(* ****************************** *)
+(*  Stampa una lista di stringhe  *)
+
+let stampa_lista lista = 
+	print_string("[");
+	let rec stampa_lista_helper lista = match lista with
+		[] -> print_string("]"); ()
+		| hd::tl -> Printf.printf "%S" hd;
+			if tl <> []
+				then print_string("; ");
+			stampa_lista_helper tl
+	in stampa_lista_helper lista;;
+
+
+
 (* *********************************************************** *)
 (*  Sort di una string list per lunghezza elementi ascendente  *)
 
@@ -120,12 +124,33 @@ let ordina_lista lista = List.sort ordina_ascendente_lunghezza lista;;
 
 
 
+(* ************************************************************************************* *)
+(*  Controlla se la substring che stiamo per ricercare è gia presente all'interno della  *)
+(*  lista di substring precedentemente trovate così da non doverla ricercare nuovamente  *)
+
+  
+let uguale = (=);;
+let gia_in_risultato_helper substring lista_risultati = List.exists (uguale substring) lista_risultati;;
+
+let gia_in_risultato contatore_char index k stringa_piu_corta lista_risultati = 
+	if (List.length lista_risultati > 0 && (contatore_char = 0 && (index+k) <= (String.length stringa_piu_corta)))
+		then let substring_completa = (String.sub stringa_piu_corta index k) in
+			if (gia_in_risultato_helper substring_completa lista_risultati)
+				then (
+				    print_string("\n** ricerca_substring_helper -- substring \"" ^ substring_completa ^ "\" gia trovata precedentemente **\n"); 
+				    true
+			    ) else false
+	    else false;;
+
+
 (* ****************************************************************** *)
 (*             Funzione ausiliaria di continua_ricerca()              *)
 (*  Stampa la soluzione e la richiesta di continuo ricerca substring  *)
 
-let stampa_soluzione (res_bool, res_string) richiesta =
-	Printf.printf "(%B, %S) %s" res_bool res_string richiesta;;
+let stampa_soluzione (res_bool, res_string) lista_risultati richiesta =
+	Printf.printf "(%B, %S)\n" res_bool res_string;
+	print_string("Lista substring trovate: "); stampa_lista lista_risultati;
+	Printf.printf "\n%s\n" richiesta;;
 
 (* ***************************************************************************** *)
 (*               Funzione di richiesta continua ricerca substring                *)
@@ -135,8 +160,8 @@ let stampa_soluzione (res_bool, res_string) richiesta =
 (*    - incrementando K di 1     -> lancio eccezione ProlungaRicercaIncrementoK  *)
 (*    - cambiando il valore di K -> lancio eccezione ProlungaRicercaCambioK      *)
 
-let continua_ricerca soluzione k =
-	stampa_soluzione soluzione "\n\nCercare un'altra substring (S/n) ? ";
+let continua_ricerca soluzione lista_risultati k =
+	stampa_soluzione soluzione lista_risultati "\n\nCercare un'altra substring (S/n) ? ";
 	let scelta = read_line() in 
 		if scelta <> "" && (scelta.[0]='n' || scelta.[0]='N') 
 			then soluzione
@@ -192,56 +217,66 @@ let rec cerca_substring_in_stringa substring stringa_confronto i j contatore_cha
 (*  corta con il resto delle stringhe presenti nella lista al fine di verificare la   *)
 (*  presenza di una substring di lunghezza K in comune tra tutte quelle stringhe      *)
 
-let rec ricerca_substring_helper stringa_piu_corta lista k index contatore_char = 
+let rec ricerca_substring_helper stringa_piu_corta lista k index contatore_char lista_risultati = 
 	let len_stringa_piu_corta = String.length stringa_piu_corta in
 		(* Continuo a testare la stringa più corta che NON ha ottenuto un match solo fino a lunghezza stringa - k perchè *)
 		(* oltre quell'index, anche se trovassi un match di un char, non arriverei ad avere una substring di lunghezza k *)
 		if (((index+contatore_char) < len_stringa_piu_corta  && contatore_char > 0) || index <= (len_stringa_piu_corta-k))
 			then
 				try
-					let rec cerca_substring_in_lista lista_da_testare = match lista_da_testare with
-						[] -> if (contatore_char+1) < k
-							then ( 
-								print_string("** ricerca_substring_helper -- testate tutte le stringhe **\n");
-								Printf.printf "index:          %d\n" index;
-								Printf.printf "contatore_char: %d\n\n" contatore_char;
-								ricerca_substring_helper stringa_piu_corta lista k index (contatore_char+1)
-							)
-							else (
-								(* Chiedo all'utente se vuole continuare la ricerca di altre substring, magari cambiando anche K *)
-								try 
-									(* Fine ricerca a k *)
-									continua_ricerca (true, String.sub stringa_piu_corta index (contatore_char+1)) k 
-								with 
-									| ProlungaRicerca -> ricerca_substring_helper stringa_piu_corta lista k (index+1) 0 
-									| ProlungaRicercaIncrementoK -> if k > String.length stringa_piu_corta
-										then let eccezione = ("Usare un K <= lunghezza stringa piu' corta nella lista (in questo caso max K = "^(string_of_int (String.length stringa_piu_corta))^")") in
-											raise (KNonUtilizzabile eccezione) 
-										else ricerca_substring_helper stringa_piu_corta lista (k+1) 0 0
-									| ProlungaRicercaCambioK -> print_string("\nInserisci il nuovo valore di K: ");
-										let new_k = read_int() in
-											if new_k <= 0 
- 												then raise (KNonUtilizzabile "Usare un K >= 0")
-											else if new_k > String.length stringa_piu_corta
-												then let eccezione = ("Usare un K <= lunghezza stringa piu' corta nella lista (in questo caso max K = "^(string_of_int (String.length stringa_piu_corta))^")") in
-													raise (KNonUtilizzabile eccezione) 
-											else ricerca_substring_helper stringa_piu_corta lista new_k 0 0
-							)	
-						| x::rest -> print_string("** ricerca_substring_helper -- test stringa successiva **\n");
-							Printf.printf "index:          %d\n" index;
-							Printf.printf "contatore_char: %d\n" contatore_char;
-							Printf.printf "  stringa: %S\n" x;
-							Printf.printf "substring: %S\n\n" (String.sub stringa_piu_corta index (contatore_char+1));
+					if (gia_in_risultato contatore_char index k stringa_piu_corta lista_risultati)
+				        then raise GiaInRisultato
+					    else (
+        					let rec cerca_substring_in_lista lista_da_testare = match lista_da_testare with
+        						[] -> if (contatore_char+1) < k
+        							then ( 
+        								print_string("** ricerca_substring_helper -- testate tutte le stringhe **\n");
+        								Printf.printf "index:          %d\n" index;
+        								Printf.printf "contatore_char: %d\n\n" contatore_char;
+        								ricerca_substring_helper stringa_piu_corta lista k index (contatore_char+1) lista_risultati
+        							)
+        							else (
+        								(* Chiedo all'utente se vuole continuare la ricerca di altre substring, magari cambiando anche K *)
+        								let risultato = String.sub stringa_piu_corta index (contatore_char+1) in
+        								let lista_risultati_aggiornata = (risultato :: lista_risultati) in
+        									try 
+        										(* Fine ricerca a k *)
+        										continua_ricerca (true, risultato) lista_risultati_aggiornata k 
+        									with 
+        										| ProlungaRicerca -> ricerca_substring_helper stringa_piu_corta lista k (index+1) 0 lista_risultati_aggiornata
+        										| ProlungaRicercaIncrementoK -> if k > String.length stringa_piu_corta
+        											then let eccezione = ("Usare un K <= lunghezza stringa piu' corta nella lista (in questo caso max K = "^(string_of_int (String.length stringa_piu_corta))^")") in
+        												raise (KNonUtilizzabile eccezione) 
+        											else ricerca_substring_helper stringa_piu_corta lista (k+1) 0 0 []
+        										| ProlungaRicercaCambioK -> print_string("\nInserisci il nuovo valore di K: ");
+        											let new_k = read_int() in
+        												if new_k <= 0 
+        	 												then raise (KNonUtilizzabile "Usare un K >= 0")
+        												else if new_k > String.length stringa_piu_corta
+        													then let eccezione = ("Usare un K <= lunghezza stringa piu' corta nella lista (in questo caso max K = "^(string_of_int (String.length stringa_piu_corta))^")") in
+        														raise (KNonUtilizzabile eccezione) 
+        												else ricerca_substring_helper stringa_piu_corta lista new_k 0 0 []
+        							)	
+        						| x::rest -> print_string("** ricerca_substring_helper -- test stringa successiva **\n");
+        							Printf.printf "index:          %d\n" index;
+        							Printf.printf "contatore_char: %d\n" contatore_char;
+        							Printf.printf "  stringa: %S\n" x;
+        							Printf.printf "substring: %S\n\n" (String.sub stringa_piu_corta index (contatore_char+1));
+        
+        							if (cerca_substring_in_stringa (String.sub stringa_piu_corta index (contatore_char+1)) x 0 0 0 k)
+        								then cerca_substring_in_lista rest
+        								else raise NonPresente
+        					in cerca_substring_in_lista lista
+        				)
+				with 
+					| NonPresente -> print_string("** ricerca_substring_helper -- testata stringa, fallimento **\n");
+						Printf.printf "index:          %d\n" index;
+						Printf.printf "contatore_char: %d\n\n" contatore_char;
 
-							if (cerca_substring_in_stringa (String.sub stringa_piu_corta index (contatore_char+1)) x 0 0 0 k)
-								then cerca_substring_in_lista rest
-								else raise NonPresente
-					in cerca_substring_in_lista lista
-				with NonPresente -> print_string("** ricerca_substring_helper -- testata stringa, fallimento **\n");
-					Printf.printf "index:          %d\n" index;
-					Printf.printf "contatore_char: %d\n\n" contatore_char;
+						ricerca_substring_helper stringa_piu_corta lista k (index+1) 0 lista_risultati
+					| GiaInRisultato -> Printf.printf "index: %d\n\n" index;
 
-					ricerca_substring_helper stringa_piu_corta lista k (index+1) 0
+						ricerca_substring_helper stringa_piu_corta lista k (index+1) 0 lista_risultati
 			else (false, "");;
 
 
@@ -262,7 +297,7 @@ let rec ricerca_substring_helper stringa_piu_corta lista k index contatore_char 
 
 let ricerca_substring lista k = 
  	if k <= 0 
- 		then raise (KNonUtilizzabile "Usare un K >= 0")
+ 		then raise (KNonUtilizzabile "Usare un K > 0")
  	else if lista = []
  		then raise (ListaVuota "Usare una lista con almeno un elemento")
 	else if List.length lista = 1
@@ -281,9 +316,16 @@ let ricerca_substring lista k =
  						Printf.printf "Parola campione: %S\n" stringa_piu_corta;
  						print_string("Lista in cui cercare la substring: "); stampa_lista coda; print_newline();
  						Printf.printf "Lunghezza substring (K): %d\n\n\n" k;
- 						ricerca_substring_helper stringa_piu_corta coda k 0 0
+ 						ricerca_substring_helper stringa_piu_corta coda k 0 0 []
  					);;
 
+
+ricerca_substring ["ciccio";"ciccio"] 1;; 
+
+
+ricerca_substring ["ciao";"ciaooo";"ciooaociao"] 2;; 
+
+genera_lista ();;
 
 
 
@@ -293,11 +335,6 @@ let calcola_tempo_esecuzione f x y =
 		let fxy = f x y in
 			Printf.printf "Tempo di esecuzione: %fs\n" (Sys.time() -. t);
 		fxy;;
-
-
-genera_lista ();;
-
-ricerca_substring ["ciao";"ciaooo";"ciooaociao"] 2;; 
 
 
 
