@@ -1,5 +1,6 @@
-(* ***************************** *)
-(*           Eccezioni           *)
+(* *********************************************************************** *)
+(*                          DEFINIZIONE ECCEZIONI                          *)
+(* *********************************************************************** *)
 
 (* Eccezioni - genera_lista() *)
 exception NumeroStringheNonValido of string;;
@@ -20,6 +21,10 @@ exception KNonUtilizzabile of string;;
 exception ListaVuota of string;;
 
 
+
+(* *********************************************************************** *)
+(*                 FUNZIONI GENERAZIONE RANDOMICA STRINGHE                 *)
+(* *********************************************************************** *)
 
 (* ***************************************** *)
 (*  Funzione ausiliaria di genera_stringa()  *)
@@ -93,6 +98,11 @@ let genera_lista () =
 
 
 
+
+(* *********************************************************************** *)
+(*          FUNZIONE PRINCIPALE E AUSILIARIE DI RICERCA SUBSTRING          *)
+(* *********************************************************************** *)
+
 (* ****************************** *)
 (*  Stampa una lista di stringhe  *)
 
@@ -105,6 +115,46 @@ let stampa_lista lista =
 				then print_string("; ");
 			stampa_lista_helper tl
 	in stampa_lista_helper lista;;
+
+
+
+(* ****************************************************************** *)
+(*             Funzione ausiliaria di continua_ricerca()              *)
+(*  Stampa la soluzione e la richiesta di continuo ricerca substring  *)
+
+let stampa_soluzione (res_bool, res_string) lista_risultati richiesta =
+	Printf.printf "(%B, %S)\n" res_bool res_string;
+	print_string("Lista substring trovate: "); stampa_lista lista_risultati;
+	Printf.printf "\n%s\n" richiesta;;
+
+(* ***************************************************************************** *)
+(*               Funzione di richiesta continua ricerca substring                *)
+(*                                                                               *)
+(*  La ricerca può continuare in 3 modi differenti:                              *)
+(*    - mantenendo la stessa K   -> lancio eccezione ProlungaRicerca             *)
+(*    - incrementando K di 1     -> lancio eccezione ProlungaRicercaIncrementoK  *)
+(*    - cambiando il valore di K -> lancio eccezione ProlungaRicercaCambioK      *)
+
+let continua_ricerca soluzione lista_risultati k =
+	stampa_soluzione soluzione lista_risultati "\n\nCercare un'altra substring (S/n) ? ";
+	let scelta = read_line() in 
+		if scelta <> "" && (scelta.[0]='n' || scelta.[0]='N') 
+			then soluzione
+			else (
+				print_string("\nCosa vuoi fare? (default = [1])\n");
+				Printf.printf "[1] Continua con stesso K (K=%d)\n" k;
+				Printf.printf "[2] Incrementare il valore di K (diventerebbe K=%d)\n" (k+1);
+				print_string("[3] Cambiare il valore di K\n\n");
+				print_string("Scelta: ");
+
+				let scelta2 = read_line() in 
+					if scelta2 = "2"
+						then raise ProlungaRicercaIncrementoK
+					else if scelta2 = "3" 
+						then raise ProlungaRicercaCambioK
+					else
+						raise ProlungaRicerca
+			);;
 
 
 
@@ -143,49 +193,10 @@ let gia_in_risultato contatore_char index k stringa_piu_corta lista_risultati =
 	    else false;;
 
 
-(* ****************************************************************** *)
-(*             Funzione ausiliaria di continua_ricerca()              *)
-(*  Stampa la soluzione e la richiesta di continuo ricerca substring  *)
-
-let stampa_soluzione (res_bool, res_string) lista_risultati richiesta =
-	Printf.printf "(%B, %S)\n" res_bool res_string;
-	print_string("Lista substring trovate: "); stampa_lista lista_risultati;
-	Printf.printf "\n%s\n" richiesta;;
-
-(* ***************************************************************************** *)
-(*               Funzione di richiesta continua ricerca substring                *)
-(*                                                                               *)
-(*  La ricerca può continuare in 3 modi differenti:                              *)
-(*    - mantenendo la stessa K   -> lancio eccezione ProlungaRicerca             *)
-(*    - incrementando K di 1     -> lancio eccezione ProlungaRicercaIncrementoK  *)
-(*    - cambiando il valore di K -> lancio eccezione ProlungaRicercaCambioK      *)
-
-let continua_ricerca soluzione lista_risultati k =
-	stampa_soluzione soluzione lista_risultati "\n\nCercare un'altra substring (S/n) ? ";
-	let scelta = read_line() in 
-		if scelta <> "" && (scelta.[0]='n' || scelta.[0]='N') 
-			then soluzione
-			else (
-				print_string("\nCosa vuoi fare? (default = [1])\n"); (* Cambiare il valore di K (s/N) ? *)
-				Printf.printf "[1] Continua con stesso K (K=%d)\n" k;
-				Printf.printf "[2] Incrementare il valore di K (diventerebbe K=%d)\n" (k+1);
-				print_string("[3] Cambiare il valore di K\n\n");
-				print_string("Scelta: ");
-
-				let scelta2 = read_line() in 
-					if scelta2 = "2"
-						then raise ProlungaRicercaIncrementoK
-					else if scelta2 = "3" 
-						then raise ProlungaRicercaCambioK
-					else
-						raise ProlungaRicerca
-			);;
-
-
 
 (* ***************************************************************************** *)
 (*  Questa funzione serve a verificare se una specifica substring, appartenente  *)
-(*  alla strnga più corta, è presente all'interno di una specifica stringa tra   *)
+(*  alla stringa più corta, è presente all'interno di una specifica stringa tra  *)
 (*  quelle che compongo la lista di confronto                                    *)
 
 let rec cerca_substring_in_stringa substring stringa_confronto i j contatore_char k =
@@ -228,6 +239,8 @@ let rec ricerca_substring_helper stringa_piu_corta lista k index contatore_char 
 				        then raise GiaInRisultato
 					    else (
         					let rec cerca_substring_in_lista lista_da_testare = match lista_da_testare with
+        						(* Guardo se la lunghezza della substring appena trovata è inferiore a K *)
+        						(* e in caso affermativo continuo la ricerca sulla substring ^ 1 char    *)
         						[] -> if (contatore_char+1) < k
         							then ( 
         								print_string("** ricerca_substring_helper -- testate tutte le stringhe **\n");
@@ -235,12 +248,12 @@ let rec ricerca_substring_helper stringa_piu_corta lista k index contatore_char 
         								Printf.printf "contatore_char: %d\n\n" contatore_char;
         								ricerca_substring_helper stringa_piu_corta lista k index (contatore_char+1) lista_risultati
         							)
+        							(* Ho trovato una soluzione, ovvero una substring di lunghezza K *)
         							else (
         								(* Chiedo all'utente se vuole continuare la ricerca di altre substring, magari cambiando anche K *)
         								let risultato = String.sub stringa_piu_corta index (contatore_char+1) in
         								let lista_risultati_aggiornata = (risultato :: lista_risultati) in
         									try 
-        										(* Fine ricerca a k *)
         										continua_ricerca (true, risultato) lista_risultati_aggiornata k 
         									with 
         										| ProlungaRicerca -> ricerca_substring_helper stringa_piu_corta lista k (index+1) 0 lista_risultati_aggiornata
@@ -263,20 +276,26 @@ let rec ricerca_substring_helper stringa_piu_corta lista k index contatore_char 
         							Printf.printf "  stringa: %S\n" x;
         							Printf.printf "substring: %S\n\n" (String.sub stringa_piu_corta index (contatore_char+1));
         
+        							(* Se trovo la substring all'interno dell'attuale stringa, proseguo la ricerca nella stringa successiva *)
+        							(* altrimenti lancio l'eccezione NonPresente che va ad effettuare il backtracking vero e proprio        *)
+        							(* abbandonando questo ramo di soluzione e richiamando l'algoritmo di ricerca sull'indice successivo    *)
         							if (cerca_substring_in_stringa (String.sub stringa_piu_corta index (contatore_char+1)) x 0 0 0 k)
         								then cerca_substring_in_lista rest
         								else raise NonPresente
         					in cerca_substring_in_lista lista
         				)
 				with 
+					(* Backtracking e richiamo algoritmo su indice successivo della stringa più corta *)
 					| NonPresente -> print_string("** ricerca_substring_helper -- testata stringa, fallimento **\n");
 						Printf.printf "index:          %d\n" index;
 						Printf.printf "contatore_char: %d\n\n" contatore_char;
 
 						ricerca_substring_helper stringa_piu_corta lista k (index+1) 0 lista_risultati
-					| GiaInRisultato -> Printf.printf "index: %d\n\n" index;
 
+					(* Sto per ricercare una substring che è già stata trovata come soluzione quindi salto direttamente all'indice successivo *)
+					| GiaInRisultato -> Printf.printf "index: %d\n\n" index;
 						ricerca_substring_helper stringa_piu_corta lista k (index+1) 0 lista_risultati
+			
 			else (false, "");;
 
 
@@ -320,111 +339,69 @@ let ricerca_substring lista k =
  					);;
 
 
-ricerca_substring ["ciccio";"ciccio"] 1;; 
+(****************************************************************)
+(******************** MIGLIORIE DA APPORTARE ********************)
+(****************************************************************)
+(* - Fai un disclaimer dicendo che le lettere accentate non     *)
+(*   vengono stampate                                           *)
 
 
-ricerca_substring ["ciao";"ciaooo";"ciooaociao"] 2;; 
-
-genera_lista ();;
-
-
-
-
-let calcola_tempo_esecuzione f x y =
-	let t = Sys.time() in
-		let fxy = f x y in
-			Printf.printf "Tempo di esecuzione: %fs\n" (Sys.time() -. t);
-		fxy;;
-
-
-
-
-let tempo = calcola_tempo_esecuzione ricerca_substring ["xxgnsdcmlmlnwertyuwailug"; "mncpewertymwgx"; "sdgbxpbaghmcluwertytqcnf"; "nvwertyyfryf"; "pmijjfwertyzitulyfszvn"; "dumgakxwertyzematgazdij"; "avxhbdbpedsgowertygcle"; "naojvnrrjouukrwertym"; "ewertyuvtcqgpdzfxkjtvx"; "mvmxxwertyuft"; "aucufbvshpknzfhwertywzsn"; "zwertywnixacqgwolys"; "orntuwertyzu"; "jqbwertyfsz"; "zwertyfunnlrw"; "wertyahgkxlfddfftucsvypqs"; "ixwertyixxsip"; "dqxtftnwertywi"; "szehmxwertyfjoytir"; "remuuwertyzbvzw"; "xtptgwertywvftv"; "bjsubulbacawertywrzg"; "vmtuctdwldmctwertyw"; "memlmskmwertybvffq"; "xxpcncttwertyy"; "ldjnwertynofczbhxbktyp"; "tqywertyqkhnfaa"; "duzwwertyythj"; "vgwertyahfs"; "lytwertylthkzc"; "elpzygezpkbeawertywtvhm"; "wertyycpxuyzfrexqsfvvqy"; "pmmjaoodumwertyixjwwi"; "rrzmafxswertyhrtxzsturef"; "wertyntvhdczxdmskmbziz"; "bdxahlswamulxvwwertyss"; "qwertyygdpdzbepighu"; "cgygaarjtwertyelozmvzbv"; "tgrxgwertyoncb"; "sshpsiwertyvelzhbsaa"; "lrcrmoiowertyat"; "lzttmwertyhmfu"; "fbjcyzswyczxliwertyzmqsi"; "koqecgnixhpacwertydqexawu"; "ajwertyjdzokjsfr"; "ekpwertyezqbjuffbyh"; "wertykoiprxzabyumbjewa"; "mpvsawertywpn"; "ahxhwertyng"; "lsiwertykjxmkxndrdph"; "rvwertybuyzkt"; "wertymppdnutcpuaw"; "awertyeiefu"; "mejwynepfgnrwertyffliy"; "qunagtotyyphhwertymbywps"; "ycwertympbguwbqws"; "fjfuiwertylsxedous"; "zbdwertyjskoftqawskvjt"; "vhezexwertymnwhyhnibem"; "cipiswertygfbtdlijgqpwxi"; "xnwertyyoeegwiujwss"; "rhaapnwertyq"; "pwertywruqnthg"; "jypmvtwertywwyot"; "bbmxbbrnxbyowpfkgwertyxq"; "qpxxhxbpwertypa"; "mtyvggtwertymlb"; "qpkfwccrjtywertyue"; "zgqnwertyit"; "trlhwertyzyriqeslobcrorn"; "owertybyyabqruqnxhjpmmp"; "wertyywkaijnwnv"; "hjvpahpidfgzhbuzwertyeoa"; "lqesizbwertyfbz"; "wertyjzbmwe"; "eygwertyzflugfqrj"; "rlwptwedwfwkuedvwertyu"; "aocbszwertyj"; "hcwertydudsw"; "tmpyjwertyamzr"; "hypjrwwertyyxlzaa"; "vmzwertyfbs"; "ogonggwertyj"; "cbhwertyyraujkpbhu"; "cwertyfboby"; "nywertyyrnrr"; "kpvjiiwertyypsrws"; "dekcwertysa"; "lqewertycuebglihcsw"; "dswertynazg"; "oqcouwertybmqbgss"; "wertyrprqfexwjgbqnw"; "tboinixzchcwertyjvrzebw"; "nkwertyjzuikhjzuphfzi"; "clitoswertynqz"; "cwertytxgazafsyhzehjqxihf"; "vwertygrymlfevj"; "vemihdgrwertyxyzxuvztojs"; "zwertyfrxpusos"; "miwbsowertyw"] 3;;
-(* 100 stringhe, k = 3 ->  execution time: 0.015000s *)
-
-
-
-let tempo = calcola_tempo_esecuzione ricerca_substring ["dttykqrka"; "pvszttytp"; "dvluottyz"; "ttysqvymr"; "icanttyxr"; "phttylemj"; "bxgttyhbq"; "ttyfeymxk"; "fiolttyub"; "ssttynxve"; "efrttyczd"; "tttyifsxs"; "kttyrkcsj"; "ttysbpgjd"; "uattyqolx"; "wttyfdoul"; "ttyhaphow"; "fttyowxql"; "rejgjttyv"; "jttypfgvp"; "ttyipeyrz"; "rsrttywkyk"; "hhyttygmif"; "rzcttyibtz"; "ttykgpmqvj"; "frttympcmw"; "djttykjdhu"; "fezoolttye"; "ttynpbrxfg"; "juttyvkhxx"; "attyuyzncu"; "uudnettyfu"; "fpgbnttykw"; "mmhxbttyxb"; "dnqdzxttyv"; "etvettymld"; "eekttydgtu"; "ttydbuhfkx"; "hilqttyjsx"; "vttydiupyo"; "tearwttyus"; "gfotttyyng"; "usrjttykma"; "vkfnmwrttyz"; "ttyjejkybvh"; "nmxtligttyz"; "kjpvttymvpq"; "xjaiuhttymd"; "lrdivvxttyk"; "btdllzpttyv"; "luhbnfttypb"; "jcttyapxmhm"; "ttyavggxxjl"; "wncttyjjbvu"; "xkglalgttyq"; "yttyojwbrzh"; "ittyipyufcl"; "sulufttyvbx"; "feiqttyojwz"; "qmtttywkypv"; "rizhomttyhm"; "oxdxtdttyiz"; "uttycgfejba"; "jttybanfrsf"; "lmottygoowm"; "ttyobkezbbd"; "jcuwwyjttyu"; "tnquszfttyn"; "pehxxmlttys"; "ttypmqojvow"; "bhynzttyjzg"; "opuuqyttyxg"; "ttywjzlvjom"; "pdtbttyykod"; "aettyeoktrn"; "ybttypjrdqyi"; "nhyhqttyjdbr"; "kphiyimnttyj"; "fnpkttyhgegm"; "oeednwztttyv"; "ykiqeattycwx"; "aopgsobttyba"; "xnkgttyfimiq"; "hinyttykmtvs"; "bttyqqfydjkf"; "cyklypttygat"; "tkfqmttybrjd"; "vwrqurttyhns"; "oxczttyrudzp"; "ittyqsctdlov"; "qxuhodttybqz"; "eajshttywkyf"; "iiljiaattyff"; "cxrdttyydayc"; "udttybupifon"; "bteulttytgxf"; "ttyzbxejsxtg"; "srmttyxhpiayc"; "ixjttyvvecwuy"; "rabyipssuttys"; "yieozgxettyxs"; "yjpupkttyxpsu"; "hnrvratttyijc"; "qttygtmippicr"; "fymovahcttywz"; "zvttycwvoglre"; "kohfyiazcttyn"; "ttykizovuqjtw"; "snshgcfittybs"; "cttytqukevqok"; "bqqvjnttywaao"; "bxttyinygkjts"; "srpttyltptyua"; "wjinvbttyaagj"; "tlnygwsettypt"; "zaujovttydwgu"; "gttybejqmewrf"; "swxlttytmxfgt"; "myqcttyjjhefr"; "dattythxszxgg"; "pttyucxrvhhnt"; "hwkpttygsrmcs"; "yhnrvvttymzmh"; "ttyibisraqgog"; "wqgvtnyttycbe"; "lttywvjststvs"; "owoattyhnheig"; "rqsttyxwrzvsm"; "hqamnettyrdlh"; "ybuttyglvpxha"; "mdduttykuxksd"; "ttykjqrditqwl"; "zsmjttyhokombp"; "iaugdqttyzudac"; "lvvenpejttylhr"; "sfnpttykazkxxx"; "qhttygjmfhyqnv"; "kttyujgjtyiauj"; "mwwmpevusxttyz"; "xvmdyzqclxttys"; "mttykoegchaczu"; "lrbrfttykdsqpk"; "wbrwkhttyumhkt"; "kndschdweittyk"; "qjbwuszttyloiy"; "gubeslveuttykp"; "yyttypcsjfsgui"; "sjozttysaupofh"; "gfwqymnttyfhvc"; "njbiittywqhzng"; "ttyrsxnejsqduc"; "wrattyszlxmswb"; "rrrywtcgnqttyu"; "fhnyjiliettyklm"; "zhvtxwttybbwyzl"; "klbxsskjttydtcx"; "gacdnpgzttycico"; "httygtmirvscflt"; "lrkknufttyfrxzh"; "dehcvttytzrdupy"; "gsbriaqvttyleyw"; "uttywiedviotmnj"; "aguphjttyuynuwd"; "rwotkccittyetlr"; "kttymrgqlvrmalt"; "qzibbttyaxuopma"; "yettyalflidvkwf"; "sptkcyerdttyxxz"; "uttylwaqifvjhbv"; "bokttystychkgcf"; "ubzothttynpsdjd"; "obefwwttykmvjwy"; "gijelenttyysgcd"; "vxiaulwrdrttyll"; "qvzwnittyttoaaj"; "ttyvbbzsfpmhpny"; "sxdtmgttysyxdbu"; "battymddgjfxfzr"; "ittyoebahrzygcv"; "eyirivicottyzff"; "naxbfunrttyodlss"; "fttygpwvtkuxvwia"; "ycrettyeyujyvczz"; "izwgfunjnttyjpkx"; "fnuhttyxdgfcetbq"; "aqsvafkpttyrnrgx"; "ulhbettykezqhnsi"; "ttyftvyfephnfwfn"; "crdttyxyswqswphc"; "yczmnzvywansttym"; "hmmcvnylhqttypor"; "gqzwtxoebdtwttyg"; "vcatdtttyokplsfo"; "zovdkvrvuttyefgb"; "ygcttyntcffeovkm"; "nttygimhuvciqabp"; "yttyfffbpharnczq"; "mmmdttyjnqmckjzv"; "drsubrvzlttylknb"; "ajonrfainjuuttya"; "zlwjpttyzxviozjb"; "muqoowpkhottybrs"; "dettyjlnpzegcwyn"; "iclgdcleoutttynl"; "elcxdqttyildxscnd"; "ldcttybwbixyrsgsr"; "bdmvjvvgnivlttyez"; "wrmxivbqbttyosllt"; "kttyotavdikihkrhj"; "otjzarstnttydsrvv"; "dnxxfryttyyytprrj"; "qywubttyewlwvfbhm"; "zziunuxkroipmttym"; "puzgubttytilotfug"; "vramwttyfyurftmzg"; "atgbydljnghuottyy"; "ezgttydtungxjvbtx"; "uucmrsvwxttysjlsm"; "hisbgqhpttyyyqgug"; "iqbettyiitxetxmym"; "yttytdzmfeglcplnw"; "yfolfttyyydwetcrg"; "lorcflkqttypklbpa"; "awutdbdttygldmohu"; "fuhkmmttyeaundnoi"; "aiyvqfoeittyttzhi"; "pdefttyjoghuudpakp"; "ljqhhttyfmfoxgzkxx"; "ttykknmqwpsphosqzg"; "vrdznrlttyrljggewv"; "bpwduuwccmlnttymfi"; "yjyhqwxagttypgmejx"; "idwoqttyqdicomwncn"; "bsxoqsapwdjttyfckx"; "mnjlttyjgzwlmxmywf"; "futtydzlmnrmeijyey"; "hcovkcttyobinnjtkr"; "abxidkjdcbttywoogm"; "fttyhzbqulyesoqnbf"; "ccjttybxcxyycglizr"; "eajnhznettyzscdfyp"; "idrieijttyioozgqrb"; "nsqvattyfuephfvwrh"; "cmjvoabgsrgttyokme"; "iicrqrlwttyakrulyi"; "iottyogebtrtcyzrmt"; "mfppbejbbctkttypjg"; "yjhpttypekkpbwmzbv"; "ttyhajikbuuqfdpgkq"; "hxwvtldppttynyizdf"] 3;;
-(* 250 stringhe, k = 3, from 6 to 15 ->  execution time: 0.015000s / 0.046000s *)
-
-
-ordina_lista (genera_lista ());;
-
-ricerca_substring ["xxgnsdcmlmlnwertyuwailug"; "mncpewertymwgx"; "sdgbxpbaghmcluwertytqcnf"; "nvwertyyfryf"; "pmijjfwertyzitulyfszvn"; "dumgakxwertyzematgazdij"; "avxhbdbpedsgowertygcle"; "naojvnrrjouukrwertym"; "ewertyuvtcqgpdzfxkjtvx"; "mvmxxwertyuft"; "aucufbvshpknzfhwertywzsn"; "zwertywnixacqgwolys"; "orntuwertyzu"; "jqbwertyfsz"; "zwertyfunnlrw"; "wertyahgkxlfddfftucsvypqs"; "ixwertyixxsip"; "dqxtftnwertywi"; "szehmxwertyfjoytir"; "remuuwertyzbvzw"; "xtptgwertywvftv"; "bjsubulbacawertywrzg"; "vmtuctdwldmctwertyw"; "memlmskmwertybvffq"; "xxpcncttwertyy"; "ldjnwertynofczbhxbktyp"; "tqywertyqkhnfaa"; "duzwwertyythj"; "vgwertyahfs"; "lytwertylthkzc"; "elpzygezpkbeawertywtvhm"; "wertyycpxuyzfrexqsfvvqy"; "pmmjaoodumwertyixjwwi"; "rrzmafxswertyhrtxzsturef"; "wertyntvhdczxdmskmbziz"; "bdxahlswamulxvwwertyss"; "qwertyygdpdzbepighu"; "cgygaarjtwertyelozmvzbv"; "tgrxgwertyoncb"; "sshpsiwertyvelzhbsaa"; "lrcrmoiowertyat"; "lzttmwertyhmfu"; "fbjcyzswyczxliwertyzmqsi"; "koqecgnixhpacwertydqexawu"; "ajwertyjdzokjsfr"; "ekpwertyezqbjuffbyh"; "wertykoiprxzabyumbjewa"; "mpvsawertywpn"; "ahxhwertyng"; "lsiwertykjxmkxndrdph"; "rvwertybuyzkt"; "wertymppdnutcpuaw"; "awertyeiefu"; "mejwynepfgnrwertyffliy"; "qunagtotyyphhwertymbywps"; "ycwertympbguwbqws"; "fjfuiwertylsxedous"; "zbdwertyjskoftqawskvjt"; "vhezexwertymnwhyhnibem"; "cipiswertygfbtdlijgqpwxi"; "xnwertyyoeegwiujwss"; "rhaapnwertyq"; "pwertywruqnthg"; "jypmvtwertywwyot"; "bbmxbbrnxbyowpfkgwertyxq"; "qpxxhxbpwertypa"; "mtyvggtwertymlb"; "qpkfwccrjtywertyue"; "zgqnwertyit"; "trlhwertyzyriqeslobcrorn"; "owertybyyabqruqnxhjpmmp"; "wertyywkaijnwnv"; "hjvpahpidfgzhbuzwertyeoa"; "lqesizbwertyfbz"; "wertyjzbmwe"; "eygwertyzflugfqrj"; "rlwptwedwfwkuedvwertyu"; "aocbszwertyj"; "hcwertydudsw"; "tmpyjwertyamzr"; "hypjrwwertyyxlzaa"; "vmzwertyfbs"; "ogonggwertyj"; "cbhwertyyraujkpbhu"; "cwertyfboby"; "nywertyyrnrr"; "kpvjiiwertyypsrws"; "dekcwertysa"; "lqewertycuebglihcsw"; "dswertynazg"; "oqcouwertybmqbgss"; "wertyrprqfexwjgbqnw"; "tboinixzchcwertyjvrzebw"; "nkwertyjzuikhjzuphfzi"; "clitoswertynqz"; "cwertytxgazafsyhzehjqxihf"; "vwertygrymlfevj"; "vemihdgrwertyxyzxuvztojs"; "zwertyfrxpusos"; "miwbsowertyw"] 2;;
-
-ricerca_substring ["defofdm"; "kfidefz"; "uqcdefh"; "gfedefs"; "vuvdefs"; "defgtet"; "xodefeb"; "oukdefj"; "defhmqo"; "fxdefsq"; "udefcmj"; "mwpdefh"; "defnyyh"; "cndefjq"; "ldeffqd"; "defiiqy"; "bdefycw"; "ulwdefa"; "aazdefp"; "sddefwq"; "defgrzr"; "defjnnv"; "ssdefsy"; "cdefzvw"; "defgpvz"; "defeozy"; "rdeftip"; "bzqdefr"; "godefzn"; "ccpdefe"; "lzudefr"; "gdefslat"; "hxdefgmx"; "eydefloi"; "jpdefzbz"; "wcydefgb"; "efldefft"; "pidefvev"; "defpizki"; "deffkxlj"; "jlidefsc"; "yvdefpbg"; "cgadefwr"; "rlpdeflh"; "bdefcwqf"; "swgjdefu"; "ydefbils"; "kkdefvwg"; "ctcdefrv"; "jgepdefu"; "wlcqdefb"; "pwbjdefi"; "wvdefwtm"; "deflmrxd"; "yjfadefu"; "defwczkfk"; "ideflgkcx"; "urghcdefj"; "defkhftcv"; "defazaudz"; "defopokfa"; "ikohldefj"; "xbcqzdefg"; "wdefrtili"; "edefikiea"; "frpdefedb"; "bjdefyhcs"; "hdefnyiaf"; "ldefkvplx"; "hvqqdefmn"; "ndefnrkaf"; "njhhydefo"; "ykgckdefh"; "eevsdefry"; "qiamdefos"; "vqbdefmps"; "gzmdefxqz"; "sfzdefofn"; "tpdefwtko"; "ctttodefk"; "oupdudefq"; "defiaigtb"; "niadefghu"; "wdefklelq"; "gcpdefvma"; "jkamzdefp"; "hpzdefuwn"; "odefvbphki"; "defrtevouc"; "mthdeftoqy"; "ihdefdtdfc"; "defohepwgt"; "zvrrmydefy"; "zdefswdptf"; "iccbdefvbx"; "wpzagdefyv"; "gyzdefujxo"; "defslalcyc"; "wqaevcdeff"; "defbhzdmjf"; "xmqhodefhn"; "fecapbdefo"; "lvludeftbg"; "dnvjdefito"; "deerdefveh"; "szdefeuksg"; "nupbocdefv"; "sodefsumdg"; "mbdefkxcik"; "defiexmihp"; "wdtuxtdefd"; "defuqgbkla"; "sbwklldefo"; "ymghdefkfl"; "tgktjpsdefv"; "xxigdefubal"; "fvuwehdeflp"; "wyldeftdein"; "qddefmuluqp"; "lxntsxdefki"; "pggfilrdefb"; "defhryevivv"; "yudefueyakl"; "hwlrbdefwtt"; "ljpjldefpqe"; "yrttdefbtyf"; "ndefcbaqqxx"; "ipjsbvdefiq"; "abtsdgdefno"; "eljyjdefglj"; "dedefrpsijq"; "vdefueoppbo"; "indzdefxqku"; "txdefrbznln"; "ukpdefauoqb"; "nbtnpxdefzf"; "defvcjrghme"; "sflvdefycif"; "almydefxpgk"; "defywlatsqe"; "tsrvsdefozd"; "tdefeyvvvtp"; "dwosdefnqvk"; "viaxakdeftr"; "defbnemtomf"; "volppcdefdp"; "zigaizadefv"; "uoyxdefsutu"; "qdefjrhaohf"; "edefkaahsut"] 3;;
-
-ricerca_substring [] 4;; 
-
-ricerca_substring ["abcd";"ab"] 5;; 
-
-ricerca_substring ["òàùèì";"èòù"] 1;;
-
-ricerca_substring ["abcde";"fghijkcdelm";"nopqrcdstuqwdcdeqwq"] 3;;
-
-ricerca_substring ["ciao";"ciaooo";"ciooaociao"] 4;; 
-
-ricerca_substring ["ciao";"ciaooo";"ciooaociao"] 2;; 
-
-ricerca_substring ["ciao";"misoa";"cartia"] 3;;
-
-ricerca_substring ["ciao";"falciasao";"piae"] 3;;
-
-
-ordina_lista ["xxgnsdcmlmlnwertyuwailug"; "mncpewertymwgx"; "sdgbxpbaghmcluwertytqcnf"; "nvwertyyfryf"; "pmijjfwertyzitulyfszvn"; "dumgakxwertyzematgazdij"; "avxhbdbpedsgowertygcle"; "naojvnrrjouukrwertym"; "ewertyuvtcqgpdzfxkjtvx"; "mvmxxwertyuft"; "aucufbvshpknzfhwertywzsn"; "zwertywnixacqgwolys"; "orntuwertyzu"; "jqbwertyfsz"; "zwertyfunnlrw"; "wertyahgkxlfddfftucsvypqs"; "ixwertyixxsip"; "dqxtftnwertywi"; "szehmxwertyfjoytir"; "remuuwertyzbvzw"; "xtptgwertywvftv"; "bjsubulbacawertywrzg"; "vmtuctdwldmctwertyw"; "memlmskmwertybvffq"; "xxpcncttwertyy"; "ldjnwertynofczbhxbktyp"; "tqywertyqkhnfaa"; "duzwwertyythj"; "vgwertyahfs"; "lytwertylthkzc"; "elpzygezpkbeawertywtvhm"; "wertyycpxuyzfrexqsfvvqy"; "pmmjaoodumwertyixjwwi"; "rrzmafxswertyhrtxzsturef"; "wertyntvhdczxdmskmbziz"; "bdxahlswamulxvwwertyss"; "qwertyygdpdzbepighu"; "cgygaarjtwertyelozmvzbv"; "tgrxgwertyoncb"; "sshpsiwertyvelzhbsaa"; "lrcrmoiowertyat"; "lzttmwertyhmfu"; "fbjcyzswyczxliwertyzmqsi"; "koqecgnixhpacwertydqexawu"; "ajwertyjdzokjsfr"; "ekpwertyezqbjuffbyh"; "wertykoiprxzabyumbjewa"; "mpvsawertywpn"; "ahxhwertyng"; "lsiwertykjxmkxndrdph"; "rvwertybuyzkt"; "wertymppdnutcpuaw"; "awertyeiefu"; "mejwynepfgnrwertyffliy"; "qunagtotyyphhwertymbywps"; "ycwertympbguwbqws"; "fjfuiwertylsxedous"; "zbdwertyjskoftqawskvjt"; "vhezexwertymnwhyhnibem"; "cipiswertygfbtdlijgqpwxi"; "xnwertyyoeegwiujwss"; "rhaapnwertyq"; "pwertywruqnthg"; "jypmvtwertywwyot"; "bbmxbbrnxbyowpfkgwertyxq"; "qpxxhxbpwertypa"; "mtyvggtwertymlb"; "qpkfwccrjtywertyue"; "zgqnwertyit"; "trlhwertyzyriqeslobcrorn"; "owertybyyabqruqnxhjpmmp"; "wertyywkaijnwnv"; "hjvpahpidfgzhbuzwertyeoa"; "lqesizbwertyfbz"; "wertyjzbmwe"; "eygwertyzflugfqrj"; "rlwptwedwfwkuedvwertyu"; "aocbszwertyj"; "hcwertydudsw"; "tmpyjwertyamzr"; "hypjrwwertyyxlzaa"; "vmzwertyfbs"; "ogonggwertyj"; "cbhwertyyraujkpbhu"; "cwertyfboby"; "nywertyyrnrr"; "kpvjiiwertyypsrws"; "dekcwertysa"; "lqewertycuebglihcsw"; "dswertynazg"; "oqcouwertybmqbgss"; "wertyrprqfexwjgbqnw"; "tboinixzchcwertyjvrzebw"; "nkwertyjzuikhjzuphfzi"; "clitoswertynqz"; "cwertytxgazafsyhzehjqxihf"; "vwertygrymlfevj"; "vemihdgrwertyxyzxuvztojs"; "zwertyfrxpusos"; "miwbsowertyw"];;
-
-
-"jqbwertyfsz" ["vgwertyahfs"; "ahxhwertyng"; "awertyeiefu"; "zgqnwertyit"; "wertyjzbmwe"; "vmzwertyfbs"; "cwertyfboby"; "dekcwertysa"; "dswertynazg"; "nvwertyyfryf"; "orntuwertyzu"; "rhaapnwertyq"; "aocbszwertyj"; "hcwertydudsw"; "ogonggwertyj"; "nywertyyrnrr"; "miwbsowertyw"; "mvmxxwertyuft"; "zwertyfunnlrw"; "ixwertyixxsip"; "duzwwertyythj"; "mpvsawertywpn"; "rvwertybuyzkt"; "mncpewertymwgx"; "dqxtftnwertywi"; "xxpcncttwertyy"; "lytwertylthkzc"; "tgrxgwertyoncb"; "lzttmwertyhmfu"; "pwertywruqnthg"; "tmpyjwertyamzr"; "clitoswertynqz"; "zwertyfrxpusos"; "remuuwertyzbvzw"; "xtptgwertywvftv"; "tqywertyqkhnfaa"; "lrcrmoiowertyat"; "qpxxhxbpwertypa"; "mtyvggtwertymlb"; "wertyywkaijnwnv"; "lqesizbwertyfbz"; "vwertygrymlfevj"; "ajwertyjdzokjsfr"; "jypmvtwertywwyot"; "wertymppdnutcpuaw"; "ycwertympbguwbqws"; "eygwertyzflugfqrj"; "hypjrwwertyyxlzaa"; "kpvjiiwertyypsrws"; "oqcouwertybmqbgss"; "szehmxwertyfjoytir"; "memlmskmwertybvffq"; "fjfuiwertylsxedous"; "qpkfwccrjtywertyue"; "cbhwertyyraujkpbhu"; "zwertywnixacqgwolys"; "vmtuctdwldmctwertyw"; "qwertyygdpdzbepighu"; "ekpwertyezqbjuffbyh"; "xnwertyyoeegwiujwss"; "lqewertycuebglihcsw"; "wertyrprqfexwjgbqnw"; "naojvnrrjouukrwertym"; "bjsubulbacawertywrzg"; "sshpsiwertyvelzhbsaa"; "lsiwertykjxmkxndrdph"; "pmmjaoodumwertyixjwwi"; "nkwertyjzuikhjzuphfzi"; "pmijjfwertyzitulyfszvn"; "avxhbdbpedsgowertygcle"; "ewertyuvtcqgpdzfxkjtvx"; "ldjnwertynofczbhxbktyp"; "wertyntvhdczxdmskmbziz"; "bdxahlswamulxvwwertyss"; "wertykoiprxzabyumbjewa"; "mejwynepfgnrwertyffliy"; "zbdwertyjskoftqawskvjt"; "vhezexwertymnwhyhnibem"; "rlwptwedwfwkuedvwertyu"; "dumgakxwertyzematgazdij"; "elpzygezpkbeawertywtvhm"; "wertyycpxuyzfrexqsfvvqy"; "cgygaarjtwertyelozmvzbv"; "owertybyyabqruqnxhjpmmp"; "tboinixzchcwertyjvrzebw"; "xxgnsdcmlmlnwertyuwailug"; "sdgbxpbaghmcluwertytqcnf"; "aucufbvshpknzfhwertywzsn"; "rrzmafxswertyhrtxzsturef"; "fbjcyzswyczxliwertyzmqsi"; "qunagtotyyphhwertymbywps"; "cipiswertygfbtdlijgqpwxi"; "bbmxbbrnxbyowpfkgwertyxq"; "trlhwertyzyriqeslobcrorn"; "hjvpahpidfgzhbuzwertyeoa"; "vemihdgrwertyxyzxuvztojs"; "wertyahgkxlfddfftucsvypqs"; "koqecgnixhpacwertydqexawu"; "cwertytxgazafsyhzehjqxihf"]
-
-["defofdm"; "kfidefz"; "uqcdefh"; "gfedefs"; "vuvdefs"; "defgtet"; "xodefeb"; "oukdefj"; "defhmqo"; "fxdefsq"; "udefcmj"; "mwpdefh"; "defnyyh"; "cndefjq"; "ldeffqd"; "defiiqy"; "bdefycw"; "ulwdefa"; "aazdefp"; "sddefwq"; "defgrzr"; "defjnnv"; "ssdefsy"; "cdefzvw"; "defgpvz"; "defeozy"; "rdeftip"; "bzqdefr"; "godefzn"; "ccpdefe"; "lzudefr"; "gdefslat"; "hxdefgmx"; "eydefloi"; "jpdefzbz"; "wcydefgb"; "efldefft"; "pidefvev"; "defpizki"; "deffkxlj"; "jlidefsc"; "yvdefpbg"; "cgadefwr"; "rlpdeflh"; "bdefcwqf"; "swgjdefu"; "ydefbils"; "kkdefvwg"; "ctcdefrv"; "jgepdefu"; "wlcqdefb"; "pwbjdefi"; "wvdefwtm"; "deflmrxd"; "yjfadefu"; "defwczkfk"; "ideflgkcx"; "urghcdefj"; "defkhftcv"; "defazaudz"; "defopokfa"; "ikohldefj"; "xbcqzdefg"; "wdefrtili"; "edefikiea"; "frpdefedb"; "bjdefyhcs"; "hdefnyiaf"; "ldefkvplx"; "hvqqdefmn"; "ndefnrkaf"; "njhhydefo"; "ykgckdefh"; "eevsdefry"; "qiamdefos"; "vqbdefmps"; "gzmdefxqz"; "sfzdefofn"; "tpdefwtko"; "ctttodefk"; "oupdudefq"; "defiaigtb"; "niadefghu"; "wdefklelq"; "gcpdefvma"; "jkamzdefp"; "hpzdefuwn"; "odefvbphki"; "defrtevouc"; "mthdeftoqy"; "ihdefdtdfc"; "defohepwgt"; "zvrrmydefy"; "zdefswdptf"; "iccbdefvbx"; "wpzagdefyv"; "gyzdefujxo"; "defslalcyc"; "wqaevcdeff"; "defbhzdmjf"; "xmqhodefhn"; "fecapbdefo"; "lvludeftbg"; "dnvjdefito"; "deerdefveh"; "szdefeuksg"; "nupbocdefv"; "sodefsumdg"; "mbdefkxcik"; "defiexmihp"; "wdtuxtdefd"; "defuqgbkla"; "sbwklldefo"; "ymghdefkfl"; "tgktjpsdefv"; "xxigdefubal"; "fvuwehdeflp"; "wyldeftdein"; "qddefmuluqp"; "lxntsxdefki"; "pggfilrdefb"; "defhryevivv"; "yudefueyakl"; "hwlrbdefwtt"; "ljpjldefpqe"; "yrttdefbtyf"; "ndefcbaqqxx"; "ipjsbvdefiq"; "abtsdgdefno"; "eljyjdefglj"; "dedefrpsijq"; "vdefueoppbo"; "indzdefxqku"; "txdefrbznln"; "ukpdefauoqb"; "nbtnpxdefzf"; "defvcjrghme"; "sflvdefycif"; "almydefxpgk"; "defywlatsqe"; "tsrvsdefozd"; "tdefeyvvvtp"; "dwosdefnqvk"; "viaxakdeftr"; "defbnemtomf"; "volppcdefdp"; "zigaizadefv"; "uoyxdefsutu"; "qdefjrhaohf"; "edefkaahsut"]
-
-(**********************************************************)
-(***************** MIGLIORIE DA APPORTARE *****************)
-(**********************************************************)
-- Fai un disclaimer dicendo che le lettere accentate non 
-  vengono stampate
-- Se k = 1 e su stringa minima si hanno caratteri che si 
-  ripetono, non dovresti andarli a cercare
-
-(**********************************************************)
-(****************** MIGLIORIE APPORTATE *******************)
-(**********************************************************)
-- Termina prima la ricerca quando fai scansione di una 
-  parola nella lista e index supera len_stringa-k 
-- Lancia delle eccezioni se:
-	- k <= 0
-	- k > len str più corta 
-	- lista vuota
-- Trova substring maggiori di K chiedendolo all'utente
-- Creata funzione che mi genera una lista di stringhe rand 
-
-
-(**********************************************************)
-(******************* ERRORI INDIVIDUATI *******************)
-(**********************************************************)
-- Lettere accentate non vengono visualizzate
-
-
-(******************************************************)
-(******************* ERRORI RISOLTI *******************)
-(******************************************************)
-- Se k = 0 il mio input viene comunque testato come 1
-- Se passo una lista vuota
-- Se passo una lista con un solo elemento
+(****************************************************************)
+(********************* MIGLIORIE APPORTATE **********************)
+(****************************************************************)
+(* - Termina prima la ricerca quando fai scansione di una       *)
+(*   parola nella lista e index supera len_stringa-k            *)
+(* - Lancia delle eccezioni se:                                 *)
+(*  - k <= 0                                                    *)
+(*  - k > len str più corta                                     *)
+(*  - lista vuota                                               *)
+(* - Trova substring maggiori di K chiedendolo all'utente       *)
+(* - Creata funzione che mi genera una lista di stringhe rand   *)
+(* - Se su stringa minima si hanno substring soluzione che si   *)
+(*   ripetono, non vado a cercarli e passo al successivo index  *)
 
 
 
-(******************************************************)
-(******************* NOTE PROGETTO ********************)
-(******************************************************)
-- Ho scelto di testare ad ogni turno le stringhe a 
-  ripartire dall'indice iniziale perchè nei principali 
-  alfabeti le parole di media sono lunghe 6 caratteri
-  quindi il tempo che impiego per ricontrollare quei 
-  pochi char, almeno secondo me, risulta essere 
-  inferiore rispetto al costo in memoria che si 
-  creerebbe se dovessi salvarmi ogni volta gli indici 
-  in cui devo testare il carattere successivo
+(****************************************************************)
+(********************** ERRORI INDIVIDUATI **********************)
+(****************************************************************)
+(* - Lettere accentate non vengono visualizzate                 *)
 
-  cerca_substring_in_stringa (String.sub small_str index (counter+1)) x 0 0 0 k    (* riga 82, sotto "to find: " *)
 
+(*********************************************************)
+(********************* ERRORI RISOLTI ********************)
+(*********************************************************)
+(* - Se k = 0 il mio input viene comunque testato come 1 *)
+(* - Se passo una lista vuota                            *)
+(* - Se passo una lista con un solo elemento             *)
+
+
+
+(************************************************************)
+(********************** NOTE PROGETTO ***********************)
+(************************************************************)
+(* - Ho scelto di testare ad ogni turno le stringhe a       *)
+(*   ripartire dall'indice iniziale perchè nei principali   *)
+(*   alfabeti le parole di media sono lunghe 6 caratteri    *)
+(*   quindi il tempo che impiego per ricontrollare quei     *)
+(*   pochi char, almeno secondo me, risulta essere          *)
+(*   inferiore rispetto al costo in memoria che si          *)
+(*   creerebbe se dovessi salvarmi ogni volta gli indici    *)
+(*   in cui devo testare il carattere successivo            *)
+(*                                                          *)
+(* - Un algoritmo in ampiezza probabilmente sarebbe stato   *)
+(*   molto più performante in quanto prima mi andavo a      *)
+(*   prendere la prima substring di lunghezza K, se         *)
+(*   presente e se non presente già terminavo la ricerca.   *)
+(*   Se invece esisteva, cercavo se questa substring        *)
+(*   compariva nel primo elemento della lista di confronto. *)
+(*   Se compariva allora lo ricercavo anche nel secondo     *)
+(*   elemento della lista e così via. Se ad una certa non   *)
+(*   trovavo una corrispondenza allora effettuavo           *)
+(*   backtraking scorrendo di 1 l'index dal quale prendere  *)
+(*   la substring sulla stringa più corta per poi ripetere  *)
+(*   la ricerca come visto poco prima. Se ottenevo un       *)
+(*   riscontro tra tutte le stringhe allora sarebbe stato   *)
+(*   il risultato altrimenti, dopo aver testato tutte le    *)
+(*   substring "utili" nella stringa più corta, ritorno     *)
+(*   false come risultato.                                  *)
